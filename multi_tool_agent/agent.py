@@ -1,6 +1,6 @@
 import datetime
 from zoneinfo import ZoneInfo
-from google.adk.agents import Agent
+from google.adk.agents import LlmAgent, BaseAgent
 from google.adk.tools import google_search  # Import the tool
 
 
@@ -56,28 +56,43 @@ def get_current_time(city: str) -> dict:
     return {"status": "success", "report": report}
 
 
-root_agent = Agent(
-   # A unique name for the agent.
-   name="basic_search_agent",
-   # The Large Language Model (LLM) that agent will use.
-   model="gemini-2.0-flash-exp", # Google AI Studio
-   #model="gemini-2.0-flash-live-preview-04-09" # Vertex AI Studio
-   # A short description of the agent's purpose.
-   description="Agent to answer questions using Google Search.",
-   # Instructions to set the agent's behavior.
-   instruction="You are an expert researcher. You always stick to the facts.",
-   # Add google_search tool to perform grounding with Google search.
-   tools=[google_search]
+# google_search_function = Agent(
+#    # A unique name for the agent.
+#    name="basic_search_agent",
+#    # The Large Language Model (LLM) that agent will use.
+#    model="gemini-2.0-flash-exp", # Google AI Studio
+#    #model="gemini-2.0-flash-live-preview-04-09" # Vertex AI Studio
+#    # A short description of the agent's purpose.
+#    description="Agent to answer questions using Google Search.",
+#    # Instructions to set the agent's behavior.
+#    instruction="You are an expert researcher. You always stick to the facts.",
+#    # Add google_search tool to perform grounding with Google search.
+#    tools=[google_search]
+# )
+task_doer = BaseAgent(
+    name="TaskExecutor"
+    # tool=[google_search]
 )
 
-#root_agent = Agent(
-#    name="weather_time_agent",
-#    model="gemini-2.0-flash",
-#    description=(
-#        "Agent to answer questions about the time and weather in a city."
-#    ),
-#    instruction=(
-#        "You are a helpful agent who can answer user questions about the time and weather in a city."
-#    ),
-#    tools=[get_weather, get_current_time, google_search],
-#)
+function_agent = LlmAgent(
+   name="weather_time_agent",
+   model="gemini-2.0-flash",
+   description=(
+       "Agent to answer questions about the time and weather in a city."
+   ),
+   instruction=(
+       "You are a helpful agent who can answer user questions about the time and weather in a city."
+   ),
+   tools=[get_weather, get_current_time],
+)
+
+# Create parent agent and assign children via sub_agents
+root_agent = LlmAgent(
+    name="Coordinator",
+    model="gemini-2.0-flash",
+    description="I coordinate greetings and tasks.",
+    sub_agents=[ # Assign sub_agents here
+        function_agent,
+        task_doer
+    ]
+)
